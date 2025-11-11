@@ -1,0 +1,97 @@
+
+.root{
+    --color-dorado-obscuro: "#d1a053";
+    --color-azul-obscuro: "#071b37";
+
+
+
+}
+.sectionReview{
+    background: #071b37;
+
+}
+
+/* Estilos básicos para la sección Hero (fondo oscuro con imagen) */
+.hero-section {
+
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../../public/wallpaper2.jpg') no-repeat center center;
+    /* linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../../public/wallpaper2.jpg') no-repeat center center; */
+    background-size: cover;
+    height: 50vh; /* Ajusta la altura según necesites */
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding-top: 56px; /* Para dejar espacio a la nav */
+}
+
+/* Estilos para las tarjetas de precios */
+.price-card {
+    border: 1px solid #e0e0e0;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s;
+    background-color: white;
+    border-radius: 8px;
+}
+
+.price-card.popular {
+    border: 2px solid #ffc107; /* Borde más llamativo para el 'Más Popular' */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.price-card .price {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.price-card ul {
+    list-style: none;
+    padding: 0;
+    text-align: left;
+}
+
+.price-card ul li {
+    padding: 8px 0;
+    border-bottom: 1px dashed #eee;
+    color: #6c757d;
+}
+
+.price-card .check-icon {
+    color: #28a745; /* Color verde para el check */
+    margin-right: 8px;
+}
+
+/* Estilo para el botón (usa las clases de Bootstrap) */
+.btn-custom-gold {
+    background-color: #ffc107 !important; /* Color similar al de la imagen */
+    border-color: #ffc107 !important;
+    color: #212529;
+    font-weight: bold;
+    padding: 10px 30px;
+}
+.wallpaperLanding{
+    background: url("./wallpaper2.jpg");
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+/* styles.css */
+
+/* Estilos de la sección Hero (para que las clases se encuentren) */
+.hero-section {
+    background-color: #343a40; /* Color de fallback
+    /* Otros estilos de texto o altura que no se pasaron a estilo inline */
+}
+
+/* Estilos para el contenedor de las tarjetas */
+.feature-box {
+    background-color: rgba(255, 255, 255, 0);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+    height: 100%; /* Para igualar las alturas */
+    color: #ffffff;
+    border: #d1a053 solid 1px;
+}
