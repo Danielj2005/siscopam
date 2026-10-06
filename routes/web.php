@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
-
+use App\Models\Venta;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -33,6 +33,16 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+/*
+|--------------------------------------------------------------------------
+| POS Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/tickets/venta/{id}/imprimir', function (string $id) {
+    $venta = Venta::with(['empresa', 'sede', 'vendedor', 'cliente', 'detalles.producto'])->findOrFail($id);
+    return view('tickets.venta', compact('venta'));
+});
 
 
 require __DIR__.'/auth.php';
