@@ -40,6 +40,7 @@
                 @include('layouts.home.service')
 
                 @include('layouts.home.contact')
+                @include('layouts.home.footer')
             </div>
         </div>
     </body>
