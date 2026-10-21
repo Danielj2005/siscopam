@@ -27,7 +27,7 @@ class BcvService
                 ->latest('fecha_consulta')
                 ->first();
 
-            return $ultimaTasa ? (float) $ultimaTasa->tasa : $this->scrapingTasaBcv();
+            return $ultimaTasa ? (float) $ultimaTasa : $this->scrapingTasaBcv();
         });
     }
 
@@ -37,64 +37,31 @@ class BcvService
     public function scrapingTasaBcv(): float
     {
         try {
-            // Se inhabilita la verificación SSL debido a problemas frecuentes con los certificados del servidor del BCV
             $response = Http::withoutVerifying()
-                ->timeout(15)
-                ->headers([
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                ])
-                ->get($this->url);
+                ->timeout(10)
+                ->get('https://www.bcv.org.ve/');
 
-            if (! $response->successful()) {
-                throw new \Exception("El sitio del BCV respondió con código HTTP: {$response->status()}");
-            }
-            
-            $html = $response->body();
-            
-            Cache::put('tasa_bcv_actual', 895.5, now()->addHours(12));
-
-            // Extraer el valor contenido en el contenedor del USD mediante Expresiones Regulares
-            if (preg_match('/<div id="dolar">.*?<strong>\s*([\d,.]+)\s*<\/strong>/s', $html, $matches)) {
-                // Convertir formato decimal venezolano (ej. 36,5042) a decimal estándar de BD (36.5042)
-                $tasaLimpia = str_replace('.', '', trim($matches[1])); // Remover punto de miles si existiera
-                $tasaLimpia = str_replace(',', '.', $tasaLimpia);       // Cambiar coma por punto
-                
-                $tasa = round((float) $tasaLimpia, 4);
-
-                if ($tasa > 0) {
-
-                    // 1. Guardar en Bitácora (DB)
-                    BitacoraTasaBcv::create([
-                        'tasa' => $tasa,
-                        'origen' => 'BCV_SCRAPING',
-                        'exitoso' => true,
-                        'fecha_consulta' => now(),
-                    ]);
-                    // 2. Refrescar la Caché global
-                    Cache::put('tasa_bcv_actual', $tasa, now()->addHours(12));
-
-                    return $tasa;
+            if ($response->successful()) {
+                $html = $response->body();
+                if (preg_match('/<div id="dolar".*?<strong>\s*([\d,.]+)\s*<\/strong>/s', $html, $matches)) {
+                    $tasa = (float) str_replace(',', '.', str_replace('.', '', trim($matches[1])));
+                    if ($tasa > 0) {
+                        Cache::forever('tasa_bcv_actual', $tasa);
+                        \App\Models\BitacoraTasaBcv::create([
+                            'tasa' => $tasa,
+                            'origen' => 'BCV_SCRAPING',
+                            'exitoso' => true,
+                            'fecha_consulta' => now(),
+                        ]);
+                        return $tasa;
+                    }
                 }
             }
-
+            throw new \Exception("No se pudo extraer la tasa del HTML del BCV.");
         } catch (\Throwable $e) {
-
-            // Registrar el fallo en la bitácora para auditar
-            BitacoraTasaBcv::create([
-                'tasa' => null,
-                'origen' => 'BCV_SCRAPING',
-                'exitoso' => false,
-                'error_mensaje' => $e->getMessage(),
-                'fecha_consulta' => now(),
-            ]);
-
-            Log::error('Error al actualizar la Tasa BCV: '.$e->getMessage());
-
-            throw $e;
+            Log::error("Fallo BCV: " . $e->getMessage());
+            return $this->obtenerTasaUsd(); // Retorna la última válida en caché
         }
-        // Tasa de respaldo (Fallback) en caso de caída del servicio oficial
-        return $this->obtenerUltimaTasaRegistrada() ?? (float) config('app.tasa_bcv_fallback', 800.9);
-
     }
 
     /**
@@ -106,6 +73,6 @@ class BcvService
             ->latest('fecha_consulta')
             ->first();
 
-        return (float) $ultimaTasa->tasa ?? null;
+        return (float) $ultimaTasa ?? null;
     }
 }

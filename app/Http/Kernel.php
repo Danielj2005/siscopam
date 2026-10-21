@@ -66,5 +66,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         // Alias para Middleware RBAC
         'permission' => \App\Http\Middleware\CheckPermission::class,
+        'plan' => \App\Http\Middleware\CheckPlanFeature::class,
     ];
 }

@@ -102,6 +102,10 @@ class PagoReportadoController extends Controller
 
         if ($request->filled('estatus')) {
             $query->where('estatus', $request->estatus);
+        }else{
+            if (! $request->wantsJson()) {
+                $query->where('estatus','PENDIENTE');
+            }
         }
 
         if ($request->filled('sede_id')) {
@@ -121,8 +125,10 @@ class PagoReportadoController extends Controller
         }
 
         $pagos = $query->orderBy('created_at', 'desc')->paginate(20);
-
-        return response()->json($pagos);
+        if ($request->wantsJson()) {
+            return response()->json($pagos);
+        }
+        return view('admin.pagos.index', compact('pagos'));
     }
 
     /**
