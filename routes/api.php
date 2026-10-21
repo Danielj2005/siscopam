@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\PosController;
 use App\Services\BcvService;
 use App\Http\Controllers\Api\CheckInController;
-
+use App\Http\Controllers\Api\PagoReportadoController;
 
 
 /*
@@ -70,6 +70,20 @@ Route::middleware(['auth:sanctum', 'permission:gestionar_planes'])->group(functi
         $request->user()->unreadNotifications->markAsRead();
         return response()->json(['message' => 'Notificaciones marcadas como leídas']);
     });
+
+    // Endpoints del Cliente
+    Route::post('/cliente/reportar-pago', [PagoReportadoController::class, 'reportarPagoCliente']);
+    Route::get('/cliente/mis-pagos', [PagoReportadoController::class, 'misPagos']);
+
+    // Endpoints de Conciliación Administrativa / Recepción
+    Route::get('/admin/pagos-reportados', [PagoReportadoController::class, 'index'])
+        ->middleware('permission:ver_pagos');
+
+    Route::post('/admin/pagos-reportados/{id}/aprobar', [PagoReportadoController::class, 'aprobar'])
+        ->middleware('permission:aprobar_pagos');
+
+    Route::post('/admin/pagos-reportados/{id}/rechazar', [PagoReportadoController::class, 'rechazar'])
+        ->middleware('permission:aprobar_pagos');
     /*
     |--------------------------------------------------------------------------
     | Consultar catálogo

@@ -2,13 +2,15 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
+use App\Models\BitacoraTasaBcv;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
+
 
 class BcvService
 {
+    protected string $url = 'https://www.bcv.org.ve/';
     /**
      * Clave utilizada en la caché de Redis / Sistema.
      */
@@ -20,8 +22,12 @@ class BcvService
      */
     public function obtenerTasaUsd(): float
     {
-        return Cache::remember(self::CACHE_KEY, now()->addHours(12), function () {
-            return $this->scrapingTasaBcv();
+        return Cache::remember('tasa_bcv_actual', now()->addHours(12), function () {
+            $ultimaTasa = BitacoraTasaBcv::where('exitoso', true)
+                ->latest('fecha_consulta')
+                ->first();
+
+            return $ultimaTasa ? (float) $ultimaTasa->tasa : $this->scrapingTasaBcv();
         });
     }
 
@@ -32,55 +38,63 @@ class BcvService
     {
         try {
             // Se inhabilita la verificación SSL debido a problemas frecuentes con los certificados del servidor del BCV
-            $response = Http::withOptions([
-                'verify' => false,
-                'timeout' => 15,
-            ])->get('https://www.bcv.org.ve/');
+            $response = Http::withoutVerifying()
+                ->timeout(15)
+                ->headers([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                ])
+                ->get($this->url);
 
-            if ($response->successful()) {
-                $html = $response->body();
+            if (! $response->successful()) {
+                throw new \Exception("El sitio del BCV respondió con código HTTP: {$response->status()}");
+            }
+            
+            $html = $response->body();
+            
+            Cache::put('tasa_bcv_actual', 895.5, now()->addHours(12));
 
-                // Extraer el valor contenido en el contenedor del USD mediante Expresiones Regulares
-                if (preg_match('/<div id="dolar">.*?<strong>\s*([\d,.]+)\s*<\/strong>/s', $html, $matches)) {
-                    // Convertir formato decimal venezolano (ej. 36,5042) a decimal estándar de BD (36.5042)
-                    $tasaLimpia = str_replace('.', '', trim($matches[1])); // Remover punto de miles si existiera
-                    $tasaLimpia = str_replace(',', '.', $tasaLimpia);       // Cambiar coma por punto
-                    
-                    $tasa = round((float) $tasaLimpia, 4);
+            // Extraer el valor contenido en el contenedor del USD mediante Expresiones Regulares
+            if (preg_match('/<div id="dolar">.*?<strong>\s*([\d,.]+)\s*<\/strong>/s', $html, $matches)) {
+                // Convertir formato decimal venezolano (ej. 36,5042) a decimal estándar de BD (36.5042)
+                $tasaLimpia = str_replace('.', '', trim($matches[1])); // Remover punto de miles si existiera
+                $tasaLimpia = str_replace(',', '.', $tasaLimpia);       // Cambiar coma por punto
+                
+                $tasa = round((float) $tasaLimpia, 4);
 
-                    if ($tasa > 0) {
-                        $tasa = $tasa;
-                        $this->guardarEnBaseDeDatos($tasa);
-                        return $tasa;
-                    }
+                if ($tasa > 0) {
+
+                    // 1. Guardar en Bitácora (DB)
+                    BitacoraTasaBcv::create([
+                        'tasa' => $tasa,
+                        'origen' => 'BCV_SCRAPING',
+                        'exitoso' => true,
+                        'fecha_consulta' => now(),
+                    ]);
+                    // 2. Refrescar la Caché global
+                    Cache::put('tasa_bcv_actual', $tasa, now()->addHours(12));
+
+                    return $tasa;
                 }
             }
-        } catch (\Throwable $e) {
-            Log::channel('single')->error("Error al obtener la tasa oficial del BCV: {$e->getMessage()}");
-        }
 
+        } catch (\Throwable $e) {
+
+            // Registrar el fallo en la bitácora para auditar
+            BitacoraTasaBcv::create([
+                'tasa' => null,
+                'origen' => 'BCV_SCRAPING',
+                'exitoso' => false,
+                'error_mensaje' => $e->getMessage(),
+                'fecha_consulta' => now(),
+            ]);
+
+            Log::error('Error al actualizar la Tasa BCV: '.$e->getMessage());
+
+            throw $e;
+        }
         // Tasa de respaldo (Fallback) en caso de caída del servicio oficial
         return $this->obtenerUltimaTasaRegistrada() ?? (float) config('app.tasa_bcv_fallback', 800.9);
-    }
 
-    /**
-     * Registra la tasa de cambio en la base de datos para auditoría e historial.
-     */
-    private function guardarEnBaseDeDatos(float $tasa): void
-    {
-        try {
-            DB::table('bitacora_auditorias')->insert([
-                'id' => \Illuminate\Support\Str::uuid(),
-                'accion' => 'ACTUALIZACION_TASA_BCV',
-                'tabla_afectada' => 'sistema_configuracion',
-                'datos_nuevos_json' => json_encode(['tasa_usd_ves' => $tasa, 'fuente' => 'BCV_SCRAPING']),
-                'ip_address' => '127.0.0.1',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        } catch (\Throwable $e) {
-            Log::warning("No se pudo registrar la tasa BCV en la bitácora: {$e->getMessage()}");
-        }
     }
 
     /**
@@ -88,16 +102,10 @@ class BcvService
      */
     private function obtenerUltimaTasaRegistrada(): ?float
     {
-        $ultimoRegistro = DB::table('bitacora_auditorias')
-            ->where('accion', 'ACTUALIZACION_TASA_BCV')
-            ->latest()
+        $ultimaTasa = BitacoraTasaBcv::where('exitoso', true)
+            ->latest('fecha_consulta')
             ->first();
 
-        if ($ultimoRegistro && !empty($ultimoRegistro->datos_nuevos_json)) {
-            $data = json_decode($ultimoRegistro->datos_nuevos_json, true);
-            return $data['tasa_usd_ves'] ?? null;
-        }
-
-        return null;
+        return (float) $ultimaTasa->tasa ?? null;
     }
 }

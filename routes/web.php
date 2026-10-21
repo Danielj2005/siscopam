@@ -3,6 +3,12 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Models\Venta;
+use App\Http\Controllers\CierreCajaController;
+
+
+
+
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -21,6 +27,11 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::middleware(['auth'])->prefix('admin/caja')->group(function () {
+    Route::get('/', [CierreCajaController::class, 'index'])->name('caja.index');
+    Route::post('/aperturar', [CierreCajaController::class, 'aperturar'])->name('caja.aperturar');
+    Route::post('/cerrar', [CierreCajaController::class, 'cerrar'])->name('caja.cerrar');
+});
 /*
 |--------------------------------------------------------------------------
 | Private Routes
