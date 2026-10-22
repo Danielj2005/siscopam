@@ -67,5 +67,6 @@ class Kernel extends HttpKernel
         // Alias para Middleware RBAC
         'permission' => \App\Http\Middleware\CheckPermission::class,
         'plan' => \App\Http\Middleware\CheckPlanFeature::class,
+        'superadmin' => \App\Http\Middleware\EnsureSuperAdmin::class,
     ];
 }

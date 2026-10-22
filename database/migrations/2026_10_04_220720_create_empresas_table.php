@@ -15,6 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('nombre');
             $table->string('rif')->unique();
+            $table->enum('plan',['basico','completo']);
             $table->jsonb('configuracion')->nullable();
             $table->timestamps();
         });

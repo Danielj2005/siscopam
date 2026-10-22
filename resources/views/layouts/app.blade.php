@@ -82,6 +82,16 @@
                     @include('layouts.partials.navigation-links')
                 </nav>
 
+                <div class="px-3 mt-auto">
+                    <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-3 flex items-center justify-between">
+                        <a href="{{ route('logout') }}" 
+                            class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition shadow-lg shadow-indigo-600/30">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            Cerrar Sesión
+                        </a>
+                    </div>
+                </div>
+
                 <!-- Panel Tasa BCV Flotante -->
                 <div class="px-3 mt-auto">
                     <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-3 flex items-center justify-between">
@@ -122,7 +132,7 @@
                         </button>
 
                         <div x-show="open" @click.away="open = false" style="display: none;" 
-                             class="absolute right-0 mt-2 w-80 bg-gray-950 border border-gray-800 rounded-xl shadow-2xl py-2 z-50">
+                            class="absolute right-0 mt-2 w-80 bg-gray-950 border border-gray-800 rounded-xl shadow-2xl py-2 z-50">
                             <div class="px-4 py-2 border-b border-gray-800 flex justify-between items-center">
                                 <span class="text-xs font-semibold text-gray-300">Notificaciones</span>
                                 <span class="text-[10px] text-indigo-400 font-medium">{{ auth()->user()->unreadNotifications->count() }} nuevas</span>

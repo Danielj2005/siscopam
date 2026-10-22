@@ -59,6 +59,7 @@ class DatabaseSeeder extends Seeder
         $empresaDemo = Empresa::create([
             'nombre' => 'FitGym Center C.A.',
             'rif' => 'J-50012345-6',
+            'plan' => 'basico',
             'configuracion' => [
                 'moneda_principal' => 'USD',
                 'permitir_pago_movil' => true,
@@ -102,7 +103,21 @@ class DatabaseSeeder extends Seeder
             'activo' => true,
         ]);
 
-        // 6. Crear Plan de Membresía Demo
+        // 6. Crear Usuario Administrador del Gimnasio Demo
+        User::create([
+            'empresa_id' => $empresaDemo->id,
+            'sede_id' => $sedePrincipal->id,
+            'role_id' => $roleAdminGym->id,
+            'name' => 'Gerente AntiFlatGym',
+            'email' => 'gerencia@antiflatgym.com',
+            'cedula' => 'V-18254987',
+            'telefono' => '+584141298767',
+            'password' => Hash::make('fitgym2026'),
+            'activo' => true,
+        ]);
+
+
+        // 7. Crear Plan de Membresía Demo
         Plan::create([
             'empresa_id' => $empresaDemo->id,
             'nombre' => 'Membresía Mensual VIP',
